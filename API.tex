@@ -134,7 +134,7 @@ Note that the count starts from 1. So the above will return the information abou
  To install the package \texttt{tree} use the GET request:
 
  \texttt{https://<address>:8003/cgi-bin/toolkit/installUninstallPackage.py?\\
- packageName=tree&action=install}
+ packageName=tree\&action=install}
  
  To uninstall the package fortune-mod:
  
@@ -181,7 +181,7 @@ Note that the count starts from 1. So the above will return the information abou
  
  To offer to users the possibility to install or uninstall a package, you first need to detect the package status. To do that you may use:
  
- \texttt{https://<address>:8003/cgi-bin/toolkit/pm_api.py?op=check\_group\&packages=JSONArrayOfPackagesStringify}
+ \texttt{https://<address>:8003/cgi-bin/toolkit/pm\_api.py?op=check\_group\&packages=JSONArrayOfPackagesStringify}
  
 
  An example result for \texttt{/cgi-bin/toolkit/pm\_api.py?op=check\_group\&packages=["aptitude", "apt-cache"]} will be:
@@ -536,12 +536,12 @@ Note that the count starts from 1. So the above will return the information abou
     
     \subsection{Add a new script}
     
-    \texttt{https://<address>:/cgi-bin/toolkit/startup_manager_api.py?cmd=set&script=script_path}
+    \texttt{https://<address>:/cgi-bin/toolkit/startup\_manager\_api.py?cmd=set\&script=script\_path}
     
    
    \subsection{Remove a new script}
    
-   \texttt{/cgi-bin/toolkit/startup_manager_api.py?cmd=remove&index=0}
+   \texttt{/cgi-bin/toolkit/startup\_manager\_api.py?cmd=remove\&index=0}
    
    This will remove the first script in the list. Be careful to by on sync with the get
    
