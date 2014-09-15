@@ -1,0 +1,551 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\title{Pi-web-agent API: First draft version 0}
+\date{}
+\begin{document}
+  \maketitle 
+  
+  \section{Live feed}
+  The pi-web-agent provides a live feed of information concerning the state of the system including disk/memory/swap usage, ip address, kernel version, temperature and update notifications. The stats can be retrieved via a GET request:
+  
+  \texttt{https://<address>:8003/cgi-bin/toolkit/live\_info.py?cmd=all\_status}
+  
+  An example result is:
+  
+\begin{verbatim}
+  {
+    "kernel": "3.10.37+",
+    "temp": "45.5",
+    "mem": 18,
+    "hostname": "192.168.2.10",
+    "swap": 0,
+    "disk": "40",
+    "ucheck": false
+}
+\end{verbatim}
+
+
+  Which is in JSON format.
+  
+  \section{Package management}
+  Package management has a set of pre-defined packages which are assumed to be useful for the users. To get a list of those packages the GET request is:
+  
+  
+  \texttt{https://<address>/cgi-bin/toolkit/package\_recommendations.py?\\
+  action=getPackageList}
+  
+  The result should be:
+  
+  \begin{verbatim}
+  [
+    {
+        "label": "emacs23"
+    },
+    {
+        "label": "fail2ban"
+    },
+    {
+        "label": "fortune-mod"
+    },
+    {
+        "label": "gcc"
+    },
+    {
+        "label": "gedit"
+    },
+    {
+        "label": "git"
+    },
+    {
+        "label": "mplayer"
+    },
+    {
+        "label": "mysql-client"
+    },
+    {
+        "label": "openjdk-7-jdk"
+    },
+    {
+        "label": "openjdk-7-jre"
+    },
+    {
+        "label": "openvpn"
+    },
+    {
+        "label": "perl"
+    },
+    {
+        "label": "php5-cli"
+    },
+    {
+        "label": "ruby"
+    },
+    {
+        "label": "scala"
+    },
+    {
+        "label": "subversion"
+    },
+    {
+        "label": "tree"
+    },
+    {
+        "label": "vlc-nox"
+    }
+]
+\end{verbatim}
+  
+  Now, since the raspberry pi is slow and to get information for each package is consuming a lot of resources, the information for each package is retrieved with the GET request:
+ 
+ 
+ \texttt{https://<address>:8003/cgi-bin/toolkit/package\_recommendations.py?index=1} 
+
+Note that the count starts from 1. So the above will return the information about emacs23 which will be:
+ 
+ \begin{verbatim}
+ [
+    {
+        "Status": "<div class=\"on_off_switch\">\n<input type=\"checkbox\" name=\"emacs23\" onclick=\"submit_package(this)\" class=\"on_off_switch-checkbox\" id=\"emacs23\" checked><label class=\"on_off_switch-label\" for=\"emacs23\">\n<div class=\"on_off_switch-inner\"></div>\n<div class=\"on_off_switch-switch\"></div>\n</label>\n</div>\n",
+        "installed": false,
+        "Version": " 23.4+1-4\n",
+        "Package Name": "emacs23",
+        "Description": " The GNU Emacs editor (with GTK+ user interface)\n"
+    }
+]
+ \end{verbatim}
+ 
+ The \texttt{Status} is deprecated and planned to be removed. The \texttt{installed} parameter is provided as from 4/06/2014 for API friendliness.
+ 
+ The last packages as presented in the list is with index 17, i.e. the information for the last package can be retrieved by calling index 18. The call:
+ 
+ 
+ \texttt{https://<address>:8003/cgi-bin/toolkit/package\_recommendations.py?index=19}
+ 
+ will cause this result:
+ 
+ \begin{verbatim}
+ {
+    "STOP": "There are no more packages to load"
+ }
+ \end{verbatim}
+ 
+ \subsection{Installing/Uninstalling packages}
+ To install the package \texttt{tree} use the GET request:
+
+ \texttt{https://<address>:8003/cgi-bin/toolkit/installUninstallPackage.py?\\
+ packageName=tree&action=install}
+ 
+ To uninstall the package fortune-mod:
+ 
+ 
+ \texttt{https://<address>:8003/cgi-bin/toolkit/installUninstallPackage.py?\\
+ packageName=fortune-mod\&action=uninstall}
+ 
+ The process is executed in the background inside the server, so don't rely on the returned result. 
+ 
+ Note that you also have to check if the \texttt{apt} is busy, this can be done by querying:
+ 
+ 
+ \texttt{https://<address>:8003/cgi-bin/toolkit/live\_info.py?cmd=apt}
+ 
+ 
+ \subsection{Searching for a package}
+ 
+ It is possible to search for a package in the system through the API. The request takes the package name and returns a list of candidate packages. You can then do a group request for up to 10 packages (recommended) to get their installation status.
+ 
+ \subsubsection{Search package}
+ 
+ \texttt{https://<address>:8003/cgi-bin/toolkit/pm\_api.py?op=search\&key=package\_name}
+ 
+ 
+ An example result for searching aptitude:
+ 
+ \begin{verbatim}
+ {
+    "aptitude-doc-en": "English manual for aptitude, a terminal-based package manager",
+    "aptitude-dbg": "Debug symbols for the aptitude package manager",
+    "aptitude-doc-fi": "Finnish manual for aptitude, a terminal-based package manager",
+    "aptitude-doc-ja": "Japanese manual for aptitude, a terminal-based package manager",
+    "aptitude-common": "architecture indepedent files for the aptitude package manager",
+    "aptitude": "terminal-based package manager",
+    "aptitude-doc-fr": "French manual for aptitude, a terminal-based package manager",
+    "aptitude-doc-it": "Italian manual for aptitude, a terminal-based package manager",
+    "aptitude-doc-es": "Spanish manual for aptitude, a terminal-based package manager",
+    "aptitude-doc-cs": "Czech manual for aptitude, a terminal-based package manager"
+}
+\end{verbatim}
+ 
+
+ \subsubsection{Detect install status for a group of packages}
+ 
+ To offer to users the possibility to install or uninstall a package, you first need to detect the package status. To do that you may use:
+ 
+ \texttt{https://<address>:8003/cgi-bin/toolkit/pm_api.py?op=check\_group\&packages=JSONArrayOfPackagesStringify}
+ 
+
+ An example result for \texttt{/cgi-bin/toolkit/pm\_api.py?op=check\_group\&packages=["aptitude", "apt-cache"]} will be:
+ 
+ \begin{verbatim}
+ {
+    "apt-cache": {
+        "status": false,
+        "content": [somehtml,
+            false
+        ]
+    },
+    "aptitude": {
+        "status": true,
+        "content": [
+            somehtml,
+            true
+        ]
+    }
+ }
+ 
+\end{verbatim}
+ 
+ 
+ \section{Services}
+ To get all services with known status query:
+ 
+ 
+ \texttt{https://<address>:8003/cgi-bin/toolkit/live\_info.py?cmd=services}
+ 
+ The result is a JSON object with service names as keys mapping to a boolean value that indicates if a service is running or not. For example:
+ 
+ \begin{verbatim}
+ {
+    "nfs-common": false,
+    "rpcbind": false,
+    "motd": false,
+    "lightdm": false,
+    "sudo": false,
+    "kbd": false,
+    "cron": true,
+    "hostname.sh": false,
+    "fail2ban": true,
+    "rsyslog": true,
+    "urandom": false,
+    "udev": true,
+    "vncboot": false,
+    "rsync": false,
+    "apache2": false,
+    "keyboard-setup": false,
+    "openvpn": false,
+    "avahi-daemon": true,
+    "ifplugd": true,
+    "x11-common": false,
+    "console-setup": false,
+    "ntp": true,
+    "pi-web-agent": true,
+    "ssh": true,
+    "triggerhappy": true,
+    "bootlogs": false,
+    "rmnologin": false,
+    "dbus": true,
+    "dnsmasq": true,
+    "procps": false,
+    "checkroot.sh": false
+}
+ \end{verbatim}
+ 
+ \subsection{Changing the status of a service}
+ 
+ To change the status of a service you need to provide two parameters. Param1 is the service name and param2 is the status( "on" or "off")\\
+ 
+ 
+ \texttt{https://<address>:8003/cgi-bin/toolkit/live\_info.py?\\
+ cmd=edit\_service\&param1=nfs-common\&param2=on}
+ 
+ 
+ This will return the response code "0" meaning success.
+ \begin{verbatim}
+   {"response": 0}
+ \end{verbatim}
+ 
+ \section{File manager}
+ 
+ The file manager currently supports browsing, downloading files, and playing audio files. 
+ 
+ \subsection{Browsing files}
+ 
+ The pi-web-agent currently provides accessibility only for the /home directory and its subdirectories. Any path other than /home/* will fail and return the /home . The query to get the contents of any valid path is:
+ 
+ 
+ \texttt{https://<address>:8003/cgi-bin/toolkit/file\_manager.py?path=/home}
+ 
+ This will return a JSON object which represents the contents and their information of the directory /home. In this example there are two directories, git and pi.
+ 
+ \begin{verbatim}
+ [
+    {
+        "group": "pi",
+        "name": "git",
+        "date": {
+            "year": "2013",
+            "day": "11",
+            "month": "Jul"
+        },
+        "owner": "git",
+        "permissions": "rwxr-xr-x",
+        "type": "d",
+        "size": "4096"
+    },
+    {
+        "group": "pi",
+        "name": "pi",
+        "date": {
+            "time": "08:50",
+            "day": "4",
+            "month": "Jun"
+        },
+        "owner": "pi",
+        "permissions": "rwxr-xr-x",
+        "type": "d",
+        "size": "4096"
+    }
+]
+ \end{verbatim}
+ 
+ \subsection{Downloading files}
+ 
+ To download a file, query:
+ 
+ 
+ \texttt{https://<address>:8003/cgi-bin/toolkit/file\_manager.py?download=file.txt}
+ 
+ 
+ The result of this will be the opening of an octet stream and not JSON content like most of the requests.
+  
+  \section{Firewall management}
+  To get a JSON object for the firewall management query:
+  
+ 
+ \texttt{https://<address>/cgi-bin/toolkit/pi\_iptables\_api.py}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ The result will look like:
+ 
+ \begin{verbatim}
+{
+   "FORWARD":{
+      "rules":[
+         {
+            "protocol":"udplite",
+            "target":"ACCEPT",
+            "otherinfo":"--",
+            "destination":"ALL",
+            "source":"64.12.34.12/32",
+            "option":"--"
+         }
+      ],
+      "default":"ACCEPT"
+   },
+   "INPUT":{
+      "rules":[
+      ],
+      "default":"ACCEPT"
+   },
+   "OUTPUT":{
+      "rules":[
+      ],
+      "default":"ACCEPT"
+   }
+}
+ \end{verbatim}
+  
+  
+  \subsection{Adding firewall rules}
+  
+  To add a firewall rule you need to supply a chain and an action. Protocol and address are optional. The format is roughly:
+  
+  
+  \texttt{/cgi-bin/toolkit/add\_iptable\_rules?chain=FORWARD|INPUT|OUTPUT\&action=ACCEPT|DROP?[\&protocol=UDP|TCP|...][\&ipaddress=address]}
+  
+  
+  The following list shows the supported frameworks by the pi-web-agent:
+  
+  
+  \begin{itemize}
+      \item ALL
+      \item TCP
+      \item UDPLITE
+      \item ICMP
+      \item ESP
+      \item AH
+      \item SCTP
+  \end{itemize}
+  
+  
+  A few examples adding rules:
+  
+  
+  \texttt{/cgi-bin/toolkit/add\_iptable\_rules?chain=FORWARD\&action=DROP?\&protocol=UDP}
+  
+  
+  \texttt{/cgi-bin/toolkit/add\_iptable\_rules?chain=OUTPUT\&action=ACCEPT?\&ipaddress=0.0.0.0}
+  
+  
+  \texttt{/cgi-bin/toolkit/add\_iptable\_rules?chain=FORWARD|INPUT|OUTPUT\&action=DROP?\&protocol=UDP\&ipaddress=badwebsite.com}
+  
+  
+  The return message is simply:
+  
+  \begin{verbatim}
+  {
+      "code":0
+  }
+  \end{verbatim}
+  
+  
+ \section{Final note}
+ This documentation is incomplete and currently aims to help our dev team with creating apps based on the API. The API is not production ready yet. There are a lot of requests that should return JSON and not html or xml.
+  
+ \section{Mplayer Port}
+  The mplayer port for pi -web agent provides control over mplayer which is locally installed on the system.  This can be done  either over a web interface or the (non-restful\footnote{We can argue that this is not a restful API as , despite the use of http verbs, uris by themselves lack application state semantics (resource/element paradigm) })uri api. The application receives a command to initialise playback with an option to adjust the initial volume. On startup the application creates a fifo which is used later on to  adjust volume and equalizer after playback initialisation. The above is achieved thanks to mplayer’s slave-mode protocol \footnote{\href{http://www.mplayerhq.hu/DOCS/tech/slave.txt}{http://www.mplayerhq.hu/DOCS/tech/slave.txt}}. 
+
+
+ \subsection{Mplayer API}
+
+
+  \subsubsection{Start playback}
+   Starting playback is achieved providing  a url and the volume as a url encoded string to the server:
+   \begin{verbatim}
+   GET mplayer_status.py?url=/home/andreas/mylovelysong.mp3&volume=50
+   \end{verbatim}
+   Currently the reply to this  request returns plain html but you can skip it by requesting the http header. Content negotiation is still to be implemented. 
+   \subsubsection{Check if mplayer is currently in use}
+    Checking if mplayer is currently in use is simply done by using GET http verb on mplayer\_status.py
+    \begin{verbatim}
+     GET mplayer_status.py
+    \end{verbatim}
+    If in use you wil receive:
+    \begin{verbatim}
+    { "status" : "playing" }
+    \end{verbatim}
+     Otherwise you will receive:
+    \begin{verbatim}
+    { "redirect" : "mplayer.py" }
+    \end{verbatim}
+   \subsubsection{Stop playback }
+    Stopping  playback is simply done by using the delete http verb on mplayer\_status.py
+    
+    \begin{verbatim}
+     DELETE mplayer_status.py
+    \end{verbatim}
+     The above will return a success or failure reply\footnote{Note: If pi web agent and mplayer port are
+     installed corectly and you can access the application without any crash, in both cases you will receive back JSON with a 200 ok header as no custom http code
+     respones were designed at the moment, this is an unorthodox implaementation  and may be fixed in future
+     releases}:
+    \begin{verbatim}
+    For success you will receive(this could be replaced by an http redirect 
+    header but this would be meaningless for applications that are non-web based):
+    {"redirect" : "mplayer.py" }
+  
+    For failure you will receive:
+    { "status" : "stop failed" }
+    \end{verbatim}
+
+
+
+
+    
+    \subsubsection{Change Volume/Equalizer}
+     Change  in volume/equlizer is achieved by posting \textbf{ JSON  }to mplayer\_status.py that icludes the required volume (integer with value range between 0 and100) and eq(array of 10 integers with value range between 12 and -12):
+      \begin{verbatim}
+      POST mplayer_status.py
+        \end{verbatim}
+        JSON to be posted for volume change\footnote{Both volume and eq must be posted together as we need to overwrite the state of the application(this may not be needed in the future)}:
+      \begin{verbatim}
+      {
+        "volume":50,
+        "eqhelper":[0,0,0,0,0,0,0,0,0,0]
+      }
+      where volume is the new volume and eqhelper the existing eq
+      \end{verbatim}
+     JSON to be posted for eq change\footnotemark[4]:
+     \begin{verbatim}
+     {
+        "eq":[-7,0,0,0,7,0,0,0,0,0],
+        "volumehelper":10
+      }
+       where eq is the new eq and volumehelper the existing volume
+      \end{verbatim}   
+      The replies\footnotemark[3] were only designed to be informative so yo can just print the status attribute of the JSON reply to inform the user about the current(up to date) state of the appplication or failure. The reply to the above commands would be:\\
+      JSON reply for volume change\\
+      Succes:
+     \begin{verbatim}
+        { "status" : "volume 50"}
+     \end{verbatim} 
+     Failure:
+     \begin{verbatim}
+       { "status" : "Oups!Invalid volume range.Don't send custom requests!" }
+       { "status" : "Invalid Input!Don't send custom requests!" }
+     \end{verbatim}
+     JSON reply for eq change\\
+      Succes:    
+      \begin{verbatim}
+        { "status" : "eq -7:0:0:0:7:0:0:0:0:0" }")
+      \end{verbatim} 
+     Failure:
+     \begin{verbatim}
+        {"status" : "Invalid eq settings[-12/12]: -13:0:0:0:13:0:0:0:0:0" }
+        { "status" : "Invalid Input!Don't send custom requests!" }
+     \end{verbatim} 
+     
+\section{Startup manager}
+    
+    The startup manager provides already set up scripts to start on boot time, can add a new script to the startup queue or remove one from the queue.
+    
+    
+    \subsection{Get scripts already in queue}
+    
+    \texttt{https://<address>:/cgi-bin/toolkit/startup\_manager\_api.py?cmd=get}
+    
+    \begin{verbatim}
+   
+   
+     [
+       {
+         "args": "",
+         "script": "/home/pi/something.sh"
+       },
+       {
+         "args": "-s hello",
+         "script": "/home/pi/something_else.sh"
+       }
+    ]
+    
+    \end{verbatim} 
+    
+    
+    \subsection{Add a new script}
+    
+    \texttt{https://<address>:/cgi-bin/toolkit/startup_manager_api.py?cmd=set&script=script_path}
+    
+   
+   \subsection{Remove a new script}
+   
+   \texttt{/cgi-bin/toolkit/startup_manager_api.py?cmd=remove&index=0}
+   
+   This will remove the first script in the list. Be careful to by on sync with the get
+   
+    
+   \end{document}
+
+
