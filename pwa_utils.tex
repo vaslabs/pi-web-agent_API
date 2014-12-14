@@ -1,0 +1,47 @@
+\documentclass[a4paper, 12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\usepackage{fullpage}
+\title{Pi-web-agent utilities}
+
+
+\begin{document}
+\maketitle
+\section{Automatic update of files during development}
+
+Running \texttt{inter\_update.py} script while developing for the pi-web-agent will automatically copy your changes to the correct place everytime you save a source file. For now source files are: \texttt{*.py, *.htm, *.js}. The script is located in \texttt{usr/bin} under the root of the pi-web-agent directory structure. \\
+
+
+\textit{Synopsis:}
+\begin{itemize}
+\item[] inter\_update [-h] -wd WORK\_DIR
+\end{itemize}
+
+\textit{Arguments:}
+\begin{itemize}
+\item[] -wd, --work-dir=WORK\_DIR
+\end{itemize}
+
+\textit{Example usage:}
+\begin{itemize}
+\item[] \texttt{sudo usr/bin/inter\_update -wd /home/rpi/pi-web-agent/}
+\end{itemize}
+
+
+\textit{Requirements:}
+\begin{itemize}
+\item[] pyinotify
+\end{itemize}
+
+Notice that it will probably need sudo access to be able to copy the files under \texttt{/usr}. Also, with the move to C for some of the extensions this should be extended so that it will compile and then copy.
+ 
+\section{Testing framework for extensions}
+\end{document}
+
+
+
+
+
+
+
+\end{document}
